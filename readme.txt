@@ -35,6 +35,14 @@ Features:
 3. Add “Per Product Shipping” to a WooCommerce shipping zone and configure its instance settings.
 4. Open WooCommerce > Per Product Shipping and create product-family rules.
 
+== Pricing ==
+
+This plugin is 100% free forever. There is no paid or premium tier — no purchases, subscriptions, or feature locks.
+
+== Development ==
+
+The plugin is open source and contributions are welcome. Please submit pull requests or open issues on the [GitHub repository](https://github.com/SyzenLabs/syzenlabs-per-product-shipping-for-woocommerce).
+
 == Frequently Asked Questions ==
 
 = Does a variation fall back to its parent? =
@@ -51,5 +59,5 @@ Yes. Adjust Shipping Costs adds resolved configured product costs to eligible no
 
 == Changelog ==
 
-= 1.0.0 =
+= 1.0.0 - 18 Jul 2026 =
 * Initial release.

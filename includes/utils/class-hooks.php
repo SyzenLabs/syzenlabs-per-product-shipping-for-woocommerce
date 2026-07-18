@@ -118,5 +118,4 @@ class Hooks {
 			$this->db->delete_family( $post_id );
 		}
 	}
-
 }

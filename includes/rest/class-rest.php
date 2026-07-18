@@ -10,7 +10,6 @@ namespace SYZEPPS\Includes\Rest;
 use SYZEPPS\Includes\DB;
 use SYZEPPS\Includes\Utils\ExportHelper;
 use SYZEPPS\Includes\Utils\ImportHelper;
-use SYZEPPS\Includes\Utils\Sanitizer;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -298,10 +297,9 @@ class Rest {
 				$variation = wc_get_product( $variation_id );
 				if ( $variation ) {
 					$item['variations'][] = array(
-						'id'         => $variation_id,
-						'name'       => $variation->get_name(),
-						'sku'        => $variation->get_sku(),
-						'attributes' => $variation->get_variation_attributes(),
+						'id'   => $variation_id,
+						'name' => $variation->get_name(),
+						'sku'  => $variation->get_sku(),
 					);
 				}
 			}

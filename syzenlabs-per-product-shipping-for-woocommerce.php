@@ -3,7 +3,7 @@
  * Plugin Name: Syzenlabs Per Product Shipping for WooCommerce
  * Description: Configure shipping costs per product, variation, and destination.
  * Version:     1.0.0
- * Author:      Syzenlabs
+ * Author:      SyzenLabs
  * Requires Plugins: woocommerce
  * Text Domain: syzenlabs-per-product-shipping-for-woocommerce
  * Domain Path: /languages
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'SYZEPPS_VER', '1.0.0' );
+define( 'SYZEQL_VER', '1.0.0' );
 define( 'SYZEPPS_URL', plugin_dir_url( __FILE__ ) );
 define( 'SYZEPPS_BASE', plugin_basename( __FILE__ ) );
 define( 'SYZEPPS_PATH', plugin_dir_path( __FILE__ ) );
