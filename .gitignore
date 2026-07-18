@@ -1,0 +1,22 @@
+build/
+node_modules/
+.env
+.worktrees/
+.DS_Store
+vendor/
+vendor_prefixed/
+
+# Generated build outputs.
+assets/css/syzepps-backend.css
+assets/css/syzepps-backend-rtl.css
+assets/css/*.map
+assets/js/*
+src/style-generated.css
+languages/*.mo
+languages/*.json
+languages/*.pot
+*.js.map
+*.asset.php
+
+.github/context/
+.github/context-sqa/

@@ -1,0 +1,126 @@
+@use "variables-tokens" as *;
+@use "wordpress";
+
+.syzepps-admin {
+	box-sizing: border-box;
+	margin: 20px 20px 0 0;
+	color: #1e1e1e;
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: inherit;
+	}
+
+	.syzepps-app {
+		max-width: $syzepps-page-width;
+		margin: 0 auto;
+	}
+	.syzepps-page {
+		width: 100%;
+	}
+	.syzepps-header {
+		position: sticky;
+		top: 32px;
+		z-index: 20;
+	}
+	.syzepps-header nav .components-h-stack {
+		flex-wrap: wrap;
+	}
+	.syzepps-popup-layout > .components-card {
+		min-height: calc(100vh - 72px);
+	}
+	.syzepps-prompt-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: $syzepps-space-2;
+	}
+	.syzepps-toasts {
+		position: fixed;
+		right: $syzepps-space-5;
+		bottom: $syzepps-space-5;
+		z-index: 100001;
+	}
+	.syzepps-skeleton {
+		min-height: 120px;
+	}
+	.syzepps-badge {
+		display: inline-block;
+		padding: 2px $syzepps-space-2;
+		border-radius: 2px;
+		background: #f0f0f0;
+		font-size: 12px;
+		line-height: 20px;
+	}
+	.syzepps-badge.is-success {
+		background: #d7f0df;
+		color: #005c12;
+	}
+	.syzepps-badge.is-info {
+		background: #e5f5fa;
+		color: #007cba;
+	}
+	.syzepps-overview-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.syzepps-table-scroll {
+		overflow-x: auto;
+		margin-bottom: $syzepps-space-3;
+	}
+
+	.syzepps-destination-rates {
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-start;
+		gap: 1rem;
+	}
+
+	.syzepps-destination-rates table {
+		width: 100%;
+		min-width: 820px;
+		border-collapse: collapse;
+		background: $syzepps-surface;
+	}
+	.syzepps-destination-rates th,
+	.syzepps-destination-rates td {
+		padding: $syzepps-space-2;
+		border-bottom: 1px solid $syzepps-border;
+		text-align: left;
+		vertical-align: middle;
+	}
+	.syzepps-destination-rates tr.is-drop-target {
+		outline: 2px solid $syzepps-focus;
+		outline-offset: -2px;
+	}
+	.syzepps-destination-rates .components-base-control {
+		margin: 0;
+	}
+	.dataviews-wrapper {
+		min-height: 240px;
+	}
+
+	@media (max-width: 782px) {
+		margin-right: 10px;
+		.syzepps-header {
+			top: 46px;
+		}
+		.syzepps-header .components-h-stack {
+			align-items: flex-start;
+			flex-direction: column;
+		}
+		.syzepps-overview-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	@media (max-width: 480px) {
+		margin: 10px 10px 0 0;
+		.syzepps-header {
+			position: static;
+		}
+		.components-card__header,
+		.components-card__body {
+			padding: $syzepps-space-3;
+		}
+	}
+}

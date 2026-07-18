@@ -1,0 +1,52 @@
+{
+	"name": "syzenlabs-per-product-shipping-for-woocommerce",
+	"version": "1.0.0",
+	"license": "GPL-3.0-only",
+	"main": "src/index.js",
+	"prettier": "@wordpress/prettier-config",
+	"scripts": {
+		"setup": "npm install",
+		"start": "wp-scripts start",
+		"dev": "npx concurrently --kill-others \"gulp watch\" \"npm run start\"",
+		"ver-update": "node ./scripts/ver-updater.js",
+		"build": "npm run build:gulp && npm run build:webpack && gulp package",
+		"release": "node -e \"throw new Error('Release publishing is disabled until a Syzenlabs destination is configured.')\"",
+		"release:ci": "node -e \"throw new Error('Release publishing is disabled until a Syzenlabs destination is configured.')\"",
+		"build:gulp": "gulp build",
+		"build:webpack": "wp-scripts build",
+		"package": "gulp package",
+		"i18n": "npm run i18n:make-pot && npm run i18n:make-mo && npm run i18n:make-json",
+		"i18n:make-pot": "php -d memory_limit=2G wp-cli.phar i18n make-pot . languages/syzenlabs-per-product-shipping-for-woocommerce.pot --allow-root --slug=syzenlabs-per-product-shipping-for-woocommerce --exclude=src,build,node_modules,vendor,vendor_prefixed",
+		"i18n:make-mo": "php wp-cli.phar i18n make-mo languages --allow-root",
+		"i18n:make-json": "php wp-cli.phar i18n make-json languages --allow-root",
+		"format": "npx prettier ./src --write",
+		"lint": "npx eslint ./src",
+		"test:php": "php tests/run.php"
+	},
+	"devDependencies": {
+		"@wordpress/eslint-plugin": "^24.0.0",
+		"@wordpress/prettier-config": "^4.46.0",
+		"@wordpress/scripts": "^31.3.0",
+		"concurrently": "^9.2.1",
+		"del": "^8.0.1",
+		"eslint": "^8.56.0",
+		"eslint-plugin-react": "^7.37.5",
+		"eslint-plugin-react-you-might-not-need-an-effect": "^0.8.5",
+		"gulp": "^5.0.1",
+		"gulp-autoprefixer": "^10.0.0",
+		"gulp-rename": "^2.1.0",
+		"gulp-sass": "^6.0.1",
+		"gulp-sass-glob": "^1.1.0",
+		"gulp-zip": "^6.1.0",
+		"prettier": "npm:wp-prettier@^3.0.3",
+		"sass": "^1.99.0"
+	},
+	"dependencies": {
+		"@wordpress/api-fetch": "^7.35.0",
+		"@wordpress/components": "^32.0.0",
+		"@wordpress/dataviews": "^11.2.0",
+		"@wordpress/element": "^6.38.0",
+		"@wordpress/i18n": "^6.11.0",
+		"@wordpress/icons": "^11.5.0"
+	}
+}
