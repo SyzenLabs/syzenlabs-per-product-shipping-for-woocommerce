@@ -2,7 +2,7 @@
 /**
  * WooCommerce registration, product fields, and package-rate filters.
  *
- * @package syzenlabs-per-product-shipping-for-woocommerce
+ * @package syzenlabs-per-product-shipping
  */
 
 namespace SYZEPPS\Includes\Utils;

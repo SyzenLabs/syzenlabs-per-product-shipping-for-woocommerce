@@ -1,286 +1,326 @@
-import {
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from '@wordpress/element';
+import { useRef, useState } from 'react';
 import apiFetch from '@wordpress/api-fetch';
-import {
-	Button,
-	Notice,
-	__experimentalVStack as VStack,
-} from '@wordpress/components';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Check, CircleCheck, Package, Save } from 'lucide-react';
 import { __ } from '@wordpress/i18n';
-import { PopupLayout } from '@/components/layout';
-import { Skeleton, SyzeppsSelect } from '@/components/ui';
-import { useNav } from '@/context/nav-context';
+import { Badge, Button, Notice, Skeleton } from '@/components/ui';
+import { useResource } from '@/hooks/use-resource';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { usePrompt } from '@/context/prompt-context';
 import { useToast } from '@/context/toast-context';
+import { emptyFamily, validateFamily } from '@/lib/rules';
 import { ProductFamilyForm } from './components/section-shipping-method';
+import { ProductPicker } from './product-picker';
 
-const PRODUCT_SEARCH_DEBOUNCE_MS = 300;
-
-const emptyFamily = () => ( {
-	product: {
-		adjust_shipping_costs: false,
-		calculation_mode: 'per_line',
-		quantity_step: 1,
-		fallback_cost: '',
-		rules: [],
-	},
-	variations: {},
-} );
-
-export const RuleEditor = ( { productId = null } ) => {
-	const editing = !! productId;
-	const { navigate } = useNav();
+function EditorForm( { productId, initial } ) {
+	const navigate = useNavigate();
 	const { confirm } = usePrompt();
 	const { showToast } = useToast();
-	const [ target, setTarget ] = useState( null );
-	const [ family, setFamily ] = useState( emptyFamily );
-	const [ options, setOptions ] = useState( [] );
-	const [ loading, setLoading ] = useState( editing );
-	const [ saving, setSaving ] = useState( false );
-	const [ dirty, setDirty ] = useState( false );
-	const [ error, setError ] = useState( '' );
-	const productSearchTimeout = useRef();
-
-	useEffect( () => {
-		if ( ! editing ) {
-			return;
-		}
-		apiFetch( { path: `/syzepps/v1/rules/${ productId }` } )
-			.then( ( response ) => {
-				setTarget( response.target );
-				setFamily( {
-					product: response.product,
-					variations: response.variations,
-				} );
-			} )
-			.catch( ( issue ) => setError( issue.message ) )
-			.finally( () => setLoading( false ) );
-	}, [ editing, productId ] );
-
-	useEffect( () => {
-		const warn = ( event ) => {
-			if ( dirty ) {
-				event.preventDefault();
-				event.returnValue = '';
-			}
-		};
-		window.addEventListener( 'beforeunload', warn );
-		return () => window.removeEventListener( 'beforeunload', warn );
-	}, [ dirty ] );
-
-	const searchProducts = useCallback( ( search = '' ) => {
-		apiFetch( {
-			path: `/syzepps/v1/products?per_page=20&search=${ encodeURIComponent(
-				search
-			) }`,
-		} )
-			.then( ( response ) =>
-				setOptions(
-					response.items.map( ( item ) => ( {
-						value: item.id,
-						label: `${ item.name }${
-							item.sku ? ` · ${ item.sku }` : ''
-						} · #${ item.id }`,
-					} ) )
-				)
-			)
-			.catch( () => setOptions( [] ) );
-	}, [] );
-
-	const debouncedSearchProducts = useCallback(
-		( search = '' ) => {
-			clearTimeout( productSearchTimeout.current );
-			productSearchTimeout.current = setTimeout(
-				() => searchProducts( search ),
-				PRODUCT_SEARCH_DEBOUNCE_MS
-			);
-		},
-		[ searchProducts ]
+	const [ target, setTarget ] = useState( initial?.target || null );
+	const [ family, setFamily ] = useState( () =>
+		initial
+			? { product: initial.product, variations: initial.variations || {} }
+			: emptyFamily()
 	);
-
-	// Product choices are remote data, not render-derived state.
-	/* eslint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react-you-might-not-need-an-effect/no-derived-state */
-	useEffect( () => {
-		if ( ! editing ) {
-			searchProducts();
-		}
-
-		return () => clearTimeout( productSearchTimeout.current );
-	}, [ editing, searchProducts ] );
-	/* eslint-enable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react-you-might-not-need-an-effect/no-derived-state */
-
+	const [ savedFamily, setSavedFamily ] = useState( () =>
+		JSON.stringify(
+			initial
+				? {
+						product: initial.product,
+						variations: initial.variations || {},
+				  }
+				: emptyFamily()
+		)
+	);
+	const [ saving, setSaving ] = useState( false );
+	const [ selecting, setSelecting ] = useState( false );
+	const [ error, setError ] = useState( '' );
+	const [ saved, setSaved ] = useState( false );
+	const lock = useRef( false );
+	const allowNavigation = useRef( false );
+	const dirty =
+		( ! productId && !! target ) ||
+		JSON.stringify( family ) !== savedFamily;
+	const validation = validateFamily( family );
+	useUnsavedChanges( dirty, { busy: saving, allowNavigation } );
 	const selectProduct = async ( id ) => {
-		if ( ! id ) {
+		if ( lock.current ) {
 			return;
 		}
-		setLoading( true );
+		lock.current = true;
+		setSelecting( true );
 		setError( '' );
 		try {
-			const selected = await apiFetch( {
+			const product = await apiFetch( {
 				path: `/syzepps/v1/products/${ id }`,
 			} );
-			const next = emptyFamily();
-			selected.variations?.forEach( ( variation ) => {
-				next.variations[ variation.id ] = {
-					parent_id: selected.id,
-					enable_per_variation_shipping: false,
-					calculation_mode: 'per_line',
-					quantity_step: 1,
-					fallback_cost: '',
-					rules: [],
-				};
-			} );
-			setTarget( selected );
-			setFamily( next );
-			setDirty( true );
+			setTarget( product );
+			setFamily( emptyFamily() );
 		} catch ( issue ) {
 			setError( issue.message );
 		} finally {
-			setLoading( false );
+			lock.current = false;
+			setSelecting( false );
 		}
 	};
-
-	const validationError = useMemo( () => {
-		if ( ! target ) {
-			return __(
-				'Select a product first.',
-				'syzenlabs-per-product-shipping-for-woocommerce'
-			);
-		}
-		const records = [
-			family.product,
-			...Object.values( family.variations || {} ).filter(
-				( item ) => item.enable_per_variation_shipping
-			),
-		];
-		return records.some( ( record ) =>
-			record.rules?.some(
-				( row ) => row.cost === '' || Number( row.cost ) < 0
-			)
-		)
-			? __(
-					'Every destination row needs a non-negative cost.',
-					'syzenlabs-per-product-shipping-for-woocommerce'
-			  )
-			: '';
-	}, [ family, target ] );
-
 	const save = async () => {
-		if ( validationError ) {
-			setError( validationError );
+		if ( lock.current || ! target ) {
 			return;
 		}
+		if ( validation ) {
+			setError(
+				validation === 'fallback'
+					? __(
+							'Fallback costs must be zero or a positive number.',
+							'syzenlabs-per-product-shipping'
+					  )
+					: __(
+							'Every destination needs a valid line or item cost. Use zero for a free rate.',
+							'syzenlabs-per-product-shipping'
+					  )
+			);
+			return;
+		}
+		lock.current = true;
 		setSaving( true );
 		setError( '' );
 		try {
 			await apiFetch( {
-				path: editing
+				path: productId
 					? `/syzepps/v1/rules/${ productId }`
 					: '/syzepps/v1/rules',
-				method: editing ? 'PUT' : 'POST',
+				method: productId ? 'PUT' : 'POST',
 				data: { product_id: target.id, ...family },
 			} );
-			setDirty( false );
+			setSavedFamily( JSON.stringify( family ) );
+			setSaved( true );
 			showToast(
 				__(
-					'Product-family rule saved.',
-					'syzenlabs-per-product-shipping-for-woocommerce'
+					'Shipping rule saved.',
+					'syzenlabs-per-product-shipping'
 				)
 			);
+			if ( ! productId ) {
+				allowNavigation.current = true;
+				navigate( `/rule-edit/${ target.id }`, { replace: true } );
+			}
 		} catch ( issue ) {
 			setError( issue.message );
 		} finally {
+			lock.current = false;
 			setSaving( false );
 		}
 	};
-
-	const leave = async () => {
-		if (
-			! dirty ||
-			( await confirm( {
-				title: __(
-					'Discard changes?',
-					'syzenlabs-per-product-shipping-for-woocommerce'
-				),
-				message: __(
-					'Unsaved changes will be lost.',
-					'syzenlabs-per-product-shipping-for-woocommerce'
-				),
-				destructive: true,
-				confirmLabel: __(
-					'Discard',
-					'syzenlabs-per-product-shipping-for-woocommerce'
-				),
-			} ) )
-		) {
-			navigate( 'rules' );
-		}
-	};
-
 	return (
-		<PopupLayout
-			title={
-				editing
-					? __(
-							'Edit product rule',
-							'syzenlabs-per-product-shipping-for-woocommerce'
-					  )
-					: __(
-							'Add product rule',
-							'syzenlabs-per-product-shipping-for-woocommerce'
-					  )
-			}
-			onBack={ leave }
-			onSave={ save }
-			saving={ saving }
-			saveDisabled={ !! validationError }
-		>
-			{ error && (
-				<Notice
-					status="error"
-					isDismissible
-					onRemove={ () => setError( '' ) }
+		<div className="sp-page sp-editor">
+			<div className="sp-editor-topline">
+				<Button
+					variant="ghost"
+					size="sm"
+					onClick={ () => navigate( '/rules' ) }
 				>
-					{ error }
+					<ArrowLeft />
+					{ __(
+						'All shipping rules',
+						'syzenlabs-per-product-shipping'
+					) }
+				</Button>
+				<span className="sp-save-state">
+					{ dirty && (
+						<>
+							<span className="sp-unsaved-dot" />
+							{ __(
+								'Unsaved changes',
+								'syzenlabs-per-product-shipping'
+							) }
+						</>
+					) }
+					{ ! dirty && ( saved || productId ) && (
+						<>
+							<CircleCheck />
+							{ __(
+								'All changes saved',
+								'syzenlabs-per-product-shipping'
+							) }
+						</>
+					) }
+				</span>
+			</div>
+			<div className="sp-page-heading">
+				<h1 tabIndex={ -1 }>
+					{ productId
+						? __(
+								'Edit shipping rule',
+								'syzenlabs-per-product-shipping'
+						  )
+						: __(
+								'Create shipping rule',
+								'syzenlabs-per-product-shipping'
+						  ) }
+				</h1>
+				<Button
+					busy={ saving }
+					disabled={
+						! target ||
+						selecting ||
+						!! validation ||
+						( !! productId && ! dirty )
+					}
+					onClick={ save }
+				>
+					<Save />
+					{ __(
+						'Save rule',
+						'syzenlabs-per-product-shipping'
+					) }
+				</Button>
+			</div>
+			{ error && <Notice>{ error }</Notice> }
+			{ validation && target && (
+				<Notice tone="info">
+					{ validation === 'fallback'
+						? __(
+								'Enter a valid fallback cost or leave it empty.',
+								'syzenlabs-per-product-shipping'
+						  )
+						: __(
+								'Add a line cost or item cost to every destination. Zero is a valid free rate.',
+								'syzenlabs-per-product-shipping'
+						  ) }
 				</Notice>
 			) }
-			{ ! editing && (
-				<SyzeppsSelect
-					label={ __(
-						'Product',
-						'syzenlabs-per-product-shipping-for-woocommerce'
-					) }
-					value={ target?.id }
-					options={ options }
-					onFilterValueChange={ debouncedSearchProducts }
-					onChange={ selectProduct }
-					help={ __(
-						'Search simple products and variable-product parents by name, SKU, or ID.',
-						'syzenlabs-per-product-shipping-for-woocommerce'
-					) }
+			{ ! target ? (
+				<ProductPicker
+					onSelect={ selectProduct }
+					disabled={ selecting }
 				/>
-			) }
-			{ loading ? (
-				<Skeleton />
 			) : (
-				<ProductFamilyForm
-					target={ target }
-					family={ family }
-					onChange={ ( next ) => {
-						setFamily( next );
-						setDirty( true );
-					} }
-				/>
+				<>
+					<section className="sp-product-summary">
+						<span className="sp-product-summary-icon">
+							<Package />
+						</span>
+						<div>
+							<h2>{ target.name }</h2>
+							<p>
+								#{ target.id }
+								{ target.sku && ` · ${ target.sku }` }
+							</p>
+						</div>
+						<Badge tone="teal">
+							{ target.type === 'variable'
+								? __(
+										'Variable product',
+										'syzenlabs-per-product-shipping'
+								  )
+								: __(
+										'Simple product',
+										'syzenlabs-per-product-shipping'
+								  ) }
+						</Badge>
+						{ ! productId && (
+							<Button
+								variant="ghost"
+								size="sm"
+								disabled={ saving }
+								onClick={ async () => {
+									if (
+										! dirty ||
+										( await confirm( {
+											title: __(
+												'Choose a different product?',
+												'syzenlabs-per-product-shipping'
+											),
+											message: __(
+												'The rates you entered will be discarded.',
+												'syzenlabs-per-product-shipping'
+											),
+											confirmLabel: __(
+												'Change product',
+												'syzenlabs-per-product-shipping'
+											),
+											destructive: true,
+										} ) )
+									) {
+										setTarget( null );
+										setFamily( emptyFamily() );
+									}
+								} }
+							>
+								{ __(
+									'Change product',
+									'syzenlabs-per-product-shipping'
+								) }
+							</Button>
+						) }
+					</section>
+					<fieldset className="sp-editor-fields" disabled={ saving }>
+						<legend className="sp-sr-only">
+							{ __(
+								'Shipping configuration',
+								'syzenlabs-per-product-shipping'
+							) }
+						</legend>
+						<ProductFamilyForm
+							target={ target }
+							family={ family }
+							onChange={ setFamily }
+						/>
+					</fieldset>
+					<div className="sp-editor-bottom">
+						<Button
+							busy={ saving }
+							disabled={
+								!! validation || ( !! productId && ! dirty )
+							}
+							onClick={ save }
+						>
+							<Check />
+							{ __(
+								'Save rule',
+								'syzenlabs-per-product-shipping'
+							) }
+						</Button>
+					</div>
+				</>
 			) }
-		</PopupLayout>
+		</div>
 	);
-};
+}
 
-export const RuleEdit = ( { productId } ) => (
-	<RuleEditor productId={ productId } />
-);
+export function RuleEditor( { productId = null } ) {
+	const editing = productId !== null;
+	const validId = Number.isInteger( productId ) && productId > 0;
+	const { data, loading, error, reload } = useResource(
+		editing && validId ? `/syzepps/v1/rules/${ productId }` : null
+	);
+	if ( editing && ! validId ) {
+		return (
+			<Notice>
+				{ __(
+					'This product ID is invalid.',
+					'syzenlabs-per-product-shipping'
+				) }
+			</Notice>
+		);
+	}
+	if ( editing && error ) {
+		return <Notice retry={ reload }>{ error.message }</Notice>;
+	}
+	if ( editing && loading ) {
+		return <Skeleton rows={ 5 } />;
+	}
+	if ( editing && ! data?.target ) {
+		return (
+			<Notice>
+				{ __(
+					'This product is no longer available. Return to Shipping rules to remove its configuration.',
+					'syzenlabs-per-product-shipping'
+				) }
+			</Notice>
+		);
+	}
+	return (
+		<EditorForm productId={ productId } initial={ editing ? data : null } />
+	);
+}

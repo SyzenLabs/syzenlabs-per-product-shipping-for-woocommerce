@@ -2,7 +2,7 @@
 /**
  * WooCommerce Per Product shipping method.
  *
- * @package syzenlabs-per-product-shipping-for-woocommerce
+ * @package syzenlabs-per-product-shipping
  */
 
 namespace SYZEPPS\Includes;
@@ -21,8 +21,8 @@ class ShippingMethod extends \WC_Shipping_Method {
 	public function __construct( $instance_id = 0 ) {
 		$this->id                 = 'syzepps_wc_method';
 		$this->instance_id        = absint( $instance_id );
-		$this->method_title       = __( 'Per Product Shipping', 'syzenlabs-per-product-shipping-for-woocommerce' );
-		$this->method_description = __( 'Calculate shipping from product and variation destination rules.', 'syzenlabs-per-product-shipping-for-woocommerce' );
+		$this->method_title       = __( 'Per Product Shipping', 'syzenlabs-per-product-shipping' );
+		$this->method_description = __( 'Calculate shipping from product and variation destination rules.', 'syzenlabs-per-product-shipping' );
 		$this->supports           = array( 'shipping-zones', 'instance-settings', 'instance-settings-modal' );
 		$this->init();
 	}
@@ -48,32 +48,32 @@ class ShippingMethod extends \WC_Shipping_Method {
 	public function init_instance_form_fields() {
 		$this->instance_form_fields = array(
 			'title'                     => array(
-				'title'       => __( 'Title', 'syzenlabs-per-product-shipping-for-woocommerce' ),
+				'title'       => __( 'Title', 'syzenlabs-per-product-shipping' ),
 				'type'        => 'text',
-				'default'     => __( 'Per Product Shipping', 'syzenlabs-per-product-shipping-for-woocommerce' ),
-				'description' => __( 'Shown to customers at checkout.', 'syzenlabs-per-product-shipping-for-woocommerce' ),
+				'default'     => __( 'Per Product Shipping', 'syzenlabs-per-product-shipping' ),
+				'description' => __( 'Shown to customers at checkout.', 'syzenlabs-per-product-shipping' ),
 			),
 			'tax_status'                => array(
-				'title'   => __( 'Tax status', 'syzenlabs-per-product-shipping-for-woocommerce' ),
+				'title'   => __( 'Tax status', 'syzenlabs-per-product-shipping' ),
 				'type'    => 'select',
 				'default' => 'taxable',
 				'options' => array(
-					'taxable' => __( 'Taxable', 'syzenlabs-per-product-shipping-for-woocommerce' ),
-					'none'    => _x( 'None', 'Tax status', 'syzenlabs-per-product-shipping-for-woocommerce' ),
+					'taxable' => __( 'Taxable', 'syzenlabs-per-product-shipping' ),
+					'none'    => _x( 'None', 'Tax status', 'syzenlabs-per-product-shipping' ),
 				),
 			),
 			'calculation_method'        => array(
-				'title'   => __( 'Calculation method', 'syzenlabs-per-product-shipping-for-woocommerce' ),
+				'title'   => __( 'Calculation method', 'syzenlabs-per-product-shipping' ),
 				'type'    => 'select',
 				'default' => 'sum',
 				'options' => array(
-					'sum'     => __( 'Sum', 'syzenlabs-per-product-shipping-for-woocommerce' ),
-					'highest' => __( 'Highest', 'syzenlabs-per-product-shipping-for-woocommerce' ),
-					'lowest'  => __( 'Lowest', 'syzenlabs-per-product-shipping-for-woocommerce' ),
+					'sum'     => __( 'Sum', 'syzenlabs-per-product-shipping' ),
+					'highest' => __( 'Highest', 'syzenlabs-per-product-shipping' ),
+					'lowest'  => __( 'Lowest', 'syzenlabs-per-product-shipping' ),
 				),
 			),
 			'default_product_cost'      => array(
-				'title'             => __( 'Default product cost', 'syzenlabs-per-product-shipping-for-woocommerce' ),
+				'title'             => __( 'Default product cost', 'syzenlabs-per-product-shipping' ),
 				'type'              => 'price',
 				'default'           => '',
 				'custom_attributes' => array(
@@ -81,17 +81,17 @@ class ShippingMethod extends \WC_Shipping_Method {
 					'step' => '0.01',
 				),
 			),
-			'product_handling_fee_type' => $this->fee_type_field( __( 'Handling fee per product type', 'syzenlabs-per-product-shipping-for-woocommerce' ) ),
-			'product_handling_fee'      => $this->fee_field( __( 'Handling fee per product', 'syzenlabs-per-product-shipping-for-woocommerce' ) ),
-			'order_handling_fee_type'   => $this->fee_type_field( __( 'Handling fee per order type', 'syzenlabs-per-product-shipping-for-woocommerce' ) ),
-			'order_handling_fee'        => $this->fee_field( __( 'Handling fee per order', 'syzenlabs-per-product-shipping-for-woocommerce' ) ),
+			'product_handling_fee_type' => $this->fee_type_field( __( 'Handling fee per product type', 'syzenlabs-per-product-shipping' ) ),
+			'product_handling_fee'      => $this->fee_field( __( 'Handling fee per product', 'syzenlabs-per-product-shipping' ) ),
+			'order_handling_fee_type'   => $this->fee_type_field( __( 'Handling fee per order type', 'syzenlabs-per-product-shipping' ) ),
+			'order_handling_fee'        => $this->fee_field( __( 'Handling fee per order', 'syzenlabs-per-product-shipping' ) ),
 			'ignore_free_shipping'      => array(
-				'title'   => __( 'Ignore Free Shipping', 'syzenlabs-per-product-shipping-for-woocommerce' ),
+				'title'   => __( 'Ignore Free Shipping', 'syzenlabs-per-product-shipping' ),
 				'type'    => 'checkbox',
 				'default' => 'no',
 			),
 			'ignore_local_pickup'       => array(
-				'title'   => __( 'Ignore Local Pickup', 'syzenlabs-per-product-shipping-for-woocommerce' ),
+				'title'   => __( 'Ignore Local Pickup', 'syzenlabs-per-product-shipping' ),
 				'type'    => 'checkbox',
 				'default' => 'no',
 			),
@@ -110,9 +110,9 @@ class ShippingMethod extends \WC_Shipping_Method {
 			'type'    => 'select',
 			'default' => 'none',
 			'options' => array(
-				'none'       => __( 'None', 'syzenlabs-per-product-shipping-for-woocommerce' ),
-				'fixed'      => __( 'Fixed', 'syzenlabs-per-product-shipping-for-woocommerce' ),
-				'percentage' => __( 'Percentage', 'syzenlabs-per-product-shipping-for-woocommerce' ),
+				'none'       => __( 'None', 'syzenlabs-per-product-shipping' ),
+				'fixed'      => __( 'Fixed', 'syzenlabs-per-product-shipping' ),
+				'percentage' => __( 'Percentage', 'syzenlabs-per-product-shipping' ),
 			),
 		);
 	}

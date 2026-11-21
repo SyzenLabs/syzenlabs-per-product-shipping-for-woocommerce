@@ -2,7 +2,7 @@
 /**
  * Option-backed product-family rule repository.
  *
- * @package syzenlabs-per-product-shipping-for-woocommerce
+ * @package syzenlabs-per-product-shipping
  */
 
 namespace SYZEPPS\Includes;

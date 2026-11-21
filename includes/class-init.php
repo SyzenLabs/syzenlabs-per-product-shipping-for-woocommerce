@@ -2,7 +2,7 @@
 /**
  * Minimal dependency-aware plugin boot.
  *
- * @package syzenlabs-per-product-shipping-for-woocommerce
+ * @package syzenlabs-per-product-shipping
  */
 
 namespace SYZEPPS\Includes;
@@ -49,7 +49,7 @@ class Init {
 	 */
 	public function woocommerce_notice() {
 		if ( current_user_can( 'activate_plugins' ) ) {
-			echo '<div class="notice notice-error"><p>' . esc_html__( 'Syzenlabs Per Product Shipping requires WooCommerce.', 'syzenlabs-per-product-shipping-for-woocommerce' ) . '</p></div>';
+			echo '<div class="notice notice-error"><p>' . esc_html__( 'Syzenlabs Per Product Shipping requires WooCommerce.', 'syzenlabs-per-product-shipping' ) . '</p></div>';
 		}
 	}
 
@@ -78,29 +78,27 @@ class Init {
 		$script = SYZEPPS_PATH . 'assets/js/syzepps-backend.js';
 		$asset  = SYZEPPS_PATH . 'assets/js/syzepps-backend.asset.php';
 		if ( ! is_readable( $script ) || ! is_readable( $asset ) ) {
-			wp_die( esc_html__( 'Admin assets are missing. Run the plugin build first.', 'syzenlabs-per-product-shipping-for-woocommerce' ) );
+			wp_die( esc_html__( 'Admin assets are missing. Run the plugin build first.', 'syzenlabs-per-product-shipping' ) );
 		}
 		$metadata = require $asset;
 		wp_enqueue_script( 'syzepps-backend', SYZEPPS_URL . 'assets/js/syzepps-backend.js', isset( $metadata['dependencies'] ) ? $metadata['dependencies'] : array(), isset( $metadata['version'] ) ? $metadata['version'] : SYZEPPS_VER, true );
-		wp_set_script_translations( 'syzepps-backend', 'syzenlabs-per-product-shipping-for-woocommerce', SYZEPPS_PATH . 'languages' );
+		wp_set_script_translations( 'syzepps-backend', 'syzenlabs-per-product-shipping', SYZEPPS_PATH . 'languages' );
 		wp_localize_script(
 			'syzepps-backend',
 			'syzeppsAdmin',
 			array(
 				'nonce'            => wp_create_nonce( 'wp_rest' ),
 				'shippingZonesUrl' => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
+				'version'          => SYZEPPS_VER,
+				'currency'         => get_woocommerce_currency(),
+				'storeName'        => get_bloginfo( 'name' ),
 			)
 		);
 
-		$datatable_style_file = is_rtl() ? 'syzepps-backend-datatable-rtl.css' : 'syzepps-backend-datatable.css';
-		$datatable_style      = SYZEPPS_PATH . 'assets/css/' . $datatable_style_file;
-		if ( is_readable( $datatable_style ) ) {
-			wp_enqueue_style( 'syzepps-backend-datatable', SYZEPPS_URL . 'assets/css/' . $datatable_style_file, array(), filemtime( $datatable_style ) );
-		}
-
-		$style = SYZEPPS_PATH . 'assets/css/syzepps-backend.css';
+		$style_file = is_rtl() ? 'syzepps-backend-rtl.css' : 'syzepps-backend.css';
+		$style      = SYZEPPS_PATH . 'assets/js/' . $style_file;
 		if ( is_readable( $style ) ) {
-			wp_enqueue_style( 'syzepps-backend', SYZEPPS_URL . 'assets/css/syzepps-backend.css', array( 'wp-components' ), filemtime( $style ) );
+			wp_enqueue_style( 'syzepps-backend', SYZEPPS_URL . 'assets/js/' . $style_file, array(), filemtime( $style ) );
 		}
 	}
 }

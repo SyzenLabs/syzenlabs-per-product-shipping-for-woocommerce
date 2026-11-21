@@ -1,461 +1,367 @@
-import { useCallback, useEffect, useMemo, useState } from '@wordpress/element';
+import { useRef, useState } from 'react';
 import apiFetch from '@wordpress/api-fetch';
-import { DataViews } from '@wordpress/dataviews/wp';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-	Button,
-	Card,
-	CardBody,
-	CardHeader,
-	Modal,
-	Notice,
-	SelectControl,
-	Spinner,
-	__experimentalHStack as HStack,
-	__experimentalHeading as Heading,
-	__experimentalVStack as VStack,
-} from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
-import { FileUploader } from '@/components/ui';
-import { useNav } from '@/context/nav-context';
+	ArrowDownToLine,
+	ArrowUpFromLine,
+	Plus,
+	Search,
+	SlidersHorizontal,
+	Trash2,
+	X,
+} from 'lucide-react';
+import { __, sprintf } from '@wordpress/i18n';
+import { Badge, Button, Input, Notice, Select } from '@/components/ui';
+import { useResource, useDebouncedValue } from '@/hooks/use-resource';
 import { usePrompt } from '@/context/prompt-context';
 import { useToast } from '@/context/toast-context';
+import { ImportDialog } from './import-dialog';
+import { RulesContent } from './rules-table';
 
-const initialView = {
-	type: 'table',
-	page: 1,
-	perPage: 20,
-	search: '',
-	filters: [],
-	fields: [ 'type' ],
-	titleField: 'name',
-	layout: { density: 'balanced' },
-};
-
-export const Rules = () => {
-	const { navigate } = useNav();
+export function Rules() {
+	const [ params, setParams ] = useSearchParams();
+	const navigate = useNavigate();
+	const search = params.get( 'search' ) || '';
+	const type = [ 'simple', 'variable' ].includes( params.get( 'type' ) )
+		? params.get( 'type' )
+		: 'all';
+	const requestedPage = Number( params.get( 'page' ) );
+	const page =
+		Number.isSafeInteger( requestedPage ) && requestedPage > 0
+			? requestedPage
+			: 1;
+	const perPage = [ 10, 20, 50 ].includes(
+		Number( params.get( 'per_page' ) )
+	)
+		? Number( params.get( 'per_page' ) )
+		: 10;
+	const debouncedSearch = useDebouncedValue( search );
+	const query = new URLSearchParams( {
+		page,
+		per_page: perPage,
+		search: debouncedSearch,
+		filters: JSON.stringify(
+			type === 'all'
+				? []
+				: [ { field: 'type', operator: 'is', value: type } ]
+		),
+	} );
+	const { data, loading, error, reload } = useResource(
+		`/syzepps/v1/rules?${ query }`
+	);
+	const items = data?.items || [];
+	const total = data?.pagination.totalItems ?? 0;
+	const totalPages = data?.pagination.totalPages || 1;
+	const [ selection, setSelection ] = useState( { key: '', ids: [] } );
+	const selectionKey = `${ page }:${ perPage }:${ search }:${ type }`;
+	const selected = selection.key === selectionKey ? selection.ids : [];
+	const [ importOpen, setImportOpen ] = useState( false );
+	const [ deleting, setDeleting ] = useState( false );
+	const [ exporting, setExporting ] = useState( false );
+	const [ actionError, setActionError ] = useState( '' );
+	const mutation = useRef( false );
 	const { confirm } = usePrompt();
 	const { showToast } = useToast();
-	const [ view, setView ] = useState( initialView );
-	const [ data, setData ] = useState( [] );
-	const [ pagination, setPagination ] = useState( {
-		totalItems: 0,
-		totalPages: 1,
-	} );
-	const [ selection, setSelection ] = useState( [] );
-	const [ loading, setLoading ] = useState( true );
-	const [ error, setError ] = useState( '' );
-	const [ importOpen, setImportOpen ] = useState( false );
-	const [ file, setFile ] = useState( null );
-	const [ mode, setMode ] = useState( 'update' );
-	const [ importResult, setImportResult ] = useState( null );
-	const [ importing, setImporting ] = useState( false );
-
-	const load = useCallback( () => {
-		setLoading( true );
-		setError( '' );
-		const filters = encodeURIComponent(
-			JSON.stringify( view.filters || [] )
+	const filtered = !! search || type !== 'all';
+	const updateParams = ( changes ) => {
+		const next = new URLSearchParams( params );
+		Object.entries( changes ).forEach( ( [ key, value ] ) =>
+			value ? next.set( key, value ) : next.delete( key )
 		);
-		apiFetch( {
-			path: `/syzepps/v1/rules?page=${ view.page }&per_page=${
-				view.perPage
-			}&search=${ encodeURIComponent(
-				view.search || ''
-			) }&filters=${ filters }`,
-		} )
-			.then( ( response ) => {
-				setData( response.items );
-				setPagination( response.pagination );
-			} )
-			.catch( ( issue ) => setError( issue.message ) )
-			.finally( () => setLoading( false ) );
-	}, [ view.page, view.perPage, view.search, view.filters ] );
-	useEffect( load, [ load ] );
-
-	const fields = useMemo(
-		() => [
-			{
-				id: 'name',
-				label: __(
-					'Product',
-					'syzenlabs-per-product-shipping-for-woocommerce'
-				),
-				type: 'text',
-				enableHiding: false,
-				render: ( { item } ) => (
-					<Button
-						variant="link"
-						onClick={ () => navigate( `rule-edit/${ item.id }` ) }
-					>
-						{ item.name }
-						{ item.sku ? ` · ${ item.sku }` : '' }
-					</Button>
-				),
-			},
-			{
-				id: 'type',
-				label: __(
-					'Product type',
-					'syzenlabs-per-product-shipping-for-woocommerce'
-				),
-				type: 'text',
-			},
-		],
-		[ navigate ]
-	);
-
-	const removeItems = useCallback(
-		async ( items ) => {
-			if (
-				! ( await confirm( {
-					title: __(
-						'Delete selected rules?',
-						'syzenlabs-per-product-shipping-for-woocommerce'
-					),
-					message: __(
-						'Each selected product family and its variation overrides will be removed.',
-						'syzenlabs-per-product-shipping-for-woocommerce'
-					),
-					destructive: true,
-					confirmLabel: __(
-						'Delete',
-						'syzenlabs-per-product-shipping-for-woocommerce'
-					),
-				} ) )
-			) {
-				return;
-			}
-			try {
-				await Promise.all(
-					items.map( ( item ) =>
-						apiFetch( {
-							path: `/syzepps/v1/rules/${ item.id }`,
-							method: 'DELETE',
-						} )
-					)
-				);
-				setSelection( [] );
-				showToast(
-					__(
-						'Rules deleted.',
-						'syzenlabs-per-product-shipping-for-woocommerce'
-					)
-				);
-				load();
-			} catch ( issue ) {
-				setError( issue.message );
-			}
-		},
-		[ confirm, load, showToast ]
-	);
-
-	const actions = useMemo(
-		() => [
-			{
-				id: 'edit',
-				label: __(
-					'Edit',
-					'syzenlabs-per-product-shipping-for-woocommerce'
-				),
-				callback: ( items ) =>
-					navigate( `rule-edit/${ items[ 0 ].id }` ),
-			},
-			{
-				id: 'delete',
-				label: __(
-					'Delete',
-					'syzenlabs-per-product-shipping-for-woocommerce'
-				),
-				supportsBulk: true,
-				isDestructive: true,
-				callback: removeItems,
-			},
-		],
-		[ navigate, removeItems ]
-	);
-
-	const dryRun = async () => {
-		if ( ! file ) {
-			return;
-		}
-		setImporting( true );
-		setError( '' );
-		const body = new FormData();
-		body.append( 'file', file );
-		body.append( 'mode', mode );
-		try {
-			setImportResult(
-				await apiFetch( {
-					path: '/syzepps/v1/rules/import/dry-run',
-					method: 'POST',
-					body,
-				} )
-			);
-		} catch ( issue ) {
-			setError( issue.message );
-		} finally {
-			setImporting( false );
-		}
+		setParams( next, { replace: true } );
 	};
-
-	const commitImport = async () => {
+	const setSelected = ( ids ) => setSelection( { key: selectionKey, ids } );
+	const remove = async ( ids ) => {
 		if (
-			! importResult ||
+			mutation.current ||
 			! ( await confirm( {
 				title: __(
-					'Commit validated import?',
-					'syzenlabs-per-product-shipping-for-woocommerce'
+					'Delete shipping rules?',
+					'syzenlabs-per-product-shipping'
 				),
-				message: __(
-					'Valid product-family records will be written atomically.',
-					'syzenlabs-per-product-shipping-for-woocommerce'
+				message: sprintf(
+					/* translators: %d: product family count. */
+					__(
+						'This removes the rules and variation overrides for %d product(s). Your products will stay in WooCommerce.',
+						'syzenlabs-per-product-shipping'
+					),
+					ids.length
+				),
+				destructive: true,
+				confirmLabel: __(
+					'Delete rules',
+					'syzenlabs-per-product-shipping'
 				),
 			} ) )
 		) {
 			return;
 		}
-		setImporting( true );
+		mutation.current = true;
+		setDeleting( true );
+		setActionError( '' );
 		try {
-			const result = await apiFetch( {
-				path: '/syzepps/v1/rules/import/commit',
-				method: 'POST',
-				data: { token: importResult.token },
-			} );
-			setImportOpen( false );
-			setImportResult( null );
-			showToast(
-				`${ result.committed } ${ __(
-					'families imported.',
-					'syzenlabs-per-product-shipping-for-woocommerce'
-				) }`
+			const results = await Promise.allSettled(
+				ids.map( ( id ) =>
+					apiFetch( {
+						path: `/syzepps/v1/rules/${ id }`,
+						method: 'DELETE',
+					} )
+				)
 			);
-			load();
-		} catch ( issue ) {
-			setError( issue.message );
+			const failed = results.filter(
+				( result ) => result.status === 'rejected'
+			);
+			setSelected( [] );
+			if ( failed.length ) {
+				setActionError( failed[ 0 ].reason.message );
+			}
+			if ( results.length > failed.length ) {
+				showToast(
+					__(
+						'Shipping rules deleted.',
+						'syzenlabs-per-product-shipping'
+					)
+				);
+			}
+			if ( page > 1 && ids.length >= items.length ) {
+				updateParams( { page: page - 1 } );
+			} else {
+				reload();
+			}
 		} finally {
-			setImporting( false );
+			mutation.current = false;
+			setDeleting( false );
 		}
 	};
-
 	const exportRules = async () => {
+		if ( exporting ) {
+			return;
+		}
+		setExporting( true );
+		setActionError( '' );
 		try {
-			const query = selection.length
-				? `?${ selection
-						.map( ( id ) => `product_ids[]=${ id }` )
-						.join( '&' ) }`
-				: '';
+			const exportQuery = new URLSearchParams();
+			selected.forEach( ( id ) =>
+				exportQuery.append( 'product_ids[]', id )
+			);
 			const result = await apiFetch( {
-				path: `/syzepps/v1/rules/export${ query }`,
+				path: `/syzepps/v1/rules/export?${ exportQuery }`,
 			} );
-			const link = document.createElement( 'a' );
-			link.href = URL.createObjectURL(
+			const url = URL.createObjectURL(
 				new Blob( [ result.csv ], { type: 'text/csv;charset=utf-8' } )
 			);
+			const link = document.createElement( 'a' );
+			link.href = url;
 			link.download = result.filename;
+			document.body.appendChild( link );
 			link.click();
-			URL.revokeObjectURL( link.href );
+			link.remove();
+			setTimeout( () => URL.revokeObjectURL( url ), 1000 );
 			showToast(
 				__(
-					'CSV exported.',
-					'syzenlabs-per-product-shipping-for-woocommerce'
+					'Your CSV export is ready.',
+					'syzenlabs-per-product-shipping'
 				)
 			);
 		} catch ( issue ) {
-			setError( issue.message );
+			setActionError( issue.message );
+		} finally {
+			setExporting( false );
 		}
 	};
-
 	return (
-		<Card>
-			<CardHeader>
-				<HStack justify="space-between">
-					<Heading level={ 2 }>
+		<div className="sp-page">
+			<div className="sp-page-heading">
+				<h1 tabIndex={ -1 }>
+					{ __(
+						'Shipping rules',
+						'syzenlabs-per-product-shipping'
+					) }
+				</h1>
+				<Button asChild>
+					<Link to="/rule-add">
+						<Plus />
 						{ __(
-							'Rules',
-							'syzenlabs-per-product-shipping-for-woocommerce'
+							'Create rule',
+							'syzenlabs-per-product-shipping'
 						) }
-					</Heading>
-					<HStack expanded={ false }>
+					</Link>
+				</Button>
+			</div>
+			{ actionError && <Notice>{ actionError }</Notice> }
+			<section
+				className="sp-panel sp-rules-panel"
+				aria-label={ __(
+					'Product shipping rules',
+					'syzenlabs-per-product-shipping'
+				) }
+			>
+				<div className="sp-panel-heading">
+					<div className="sp-panel-title">
+						<h2>
+							{ __(
+								'Product rules',
+								'syzenlabs-per-product-shipping'
+							) }
+						</h2>
+						{ ! loading && ! error && <Badge>{ total }</Badge> }
+					</div>
+					<div className="sp-actions">
 						<Button
-							variant="secondary"
+							variant="outline"
+							size="sm"
 							onClick={ () => setImportOpen( true ) }
 						>
+							<ArrowUpFromLine />
 							{ __(
-								'Import',
-								'syzenlabs-per-product-shipping-for-woocommerce'
+								'Import CSV',
+								'syzenlabs-per-product-shipping'
 							) }
 						</Button>
-						<Button variant="secondary" onClick={ exportRules }>
-							{ selection.length
+						<Button
+							variant="outline"
+							size="sm"
+							busy={ exporting }
+							onClick={ exportRules }
+						>
+							{ ! exporting && <ArrowDownToLine /> }
+							{ selected.length
 								? __(
 										'Export selected',
-										'syzenlabs-per-product-shipping-for-woocommerce'
+										'syzenlabs-per-product-shipping'
 								  )
 								: __(
 										'Export all',
-										'syzenlabs-per-product-shipping-for-woocommerce'
+										'syzenlabs-per-product-shipping'
 								  ) }
 						</Button>
-						<Button
-							variant="primary"
-							onClick={ () => navigate( 'rule-add' ) }
-						>
-							{ __(
-								'Add rule',
-								'syzenlabs-per-product-shipping-for-woocommerce'
+					</div>
+				</div>
+				<div className="sp-table-toolbar">
+					<div className="sp-search">
+						<Search aria-hidden="true" />
+						<Input
+							type="search"
+							value={ search }
+							onChange={ ( event ) =>
+								updateParams( {
+									search: event.target.value,
+									page: '',
+								} )
+							}
+							placeholder={ __(
+								'Search by product name, SKU, or ID…',
+								'syzenlabs-per-product-shipping'
 							) }
-						</Button>
-					</HStack>
-				</HStack>
-			</CardHeader>
-			<CardBody>
-				<VStack spacing={ 4 }>
-					{ error && (
-						<Notice
-							status="error"
-							isDismissible
-							onRemove={ () => setError( '' ) }
-						>
-							{ error }
-						</Notice>
-					) }
-					<DataViews
-						actions={ actions }
-						data={ data }
-						fields={ fields }
-						view={ view }
-						onChangeView={ setView }
-						paginationInfo={ pagination }
-						selection={ selection }
-						onChangeSelection={ setSelection }
-						isLoading={ loading }
-						defaultLayouts={ { table: {} } }
-						empty={
-							<VStack align="center">
-								<span>
-									{ __(
-										'No product-family rules yet.',
-										'syzenlabs-per-product-shipping-for-woocommerce'
-									) }
-								</span>
-
-								<Button
-									variant="primary"
-									onClick={ () => navigate( 'rule-add' ) }
-									style={ {
-										width: 'fit-content',
-									} }
-								>
-									{ __(
-										'Add rule',
-										'syzenlabs-per-product-shipping-for-woocommerce'
-									) }
-								</Button>
-							</VStack>
-						}
-					/>
-				</VStack>
-			</CardBody>
-			{ importOpen && (
-				<Modal
-					title={ __(
-						'Import product rules',
-						'syzenlabs-per-product-shipping-for-woocommerce'
-					) }
-					onRequestClose={ () => setImportOpen( false ) }
-				>
-					<VStack spacing={ 5 }>
-						<FileUploader
-							onFile={ setFile }
-							disabled={ importing }
+							aria-label={ __(
+								'Search rules',
+								'syzenlabs-per-product-shipping'
+							) }
 						/>
-						<SelectControl
-							__next40pxDefaultSize
-							__nextHasNoMarginBottom
+					</div>
+					<div className="sp-filter">
+						<SlidersHorizontal aria-hidden="true" />
+						<Select
+							value={ type }
+							onValueChange={ ( value ) =>
+								updateParams( {
+									type: value === 'all' ? '' : value,
+									page: '',
+								} )
+							}
 							label={ __(
-								'Import mode',
-								'syzenlabs-per-product-shipping-for-woocommerce'
+								'Product type',
+								'syzenlabs-per-product-shipping'
 							) }
-							value={ mode }
 							options={ [
 								{
+									value: 'all',
 									label: __(
-										'Update',
-										'syzenlabs-per-product-shipping-for-woocommerce'
+										'All product types',
+										'syzenlabs-per-product-shipping'
 									),
-									value: 'update',
 								},
 								{
+									value: 'simple',
 									label: __(
-										'Skip existing',
-										'syzenlabs-per-product-shipping-for-woocommerce'
+										'Simple products',
+										'syzenlabs-per-product-shipping'
 									),
-									value: 'skip',
 								},
 								{
+									value: 'variable',
 									label: __(
-										'Replace target record',
-										'syzenlabs-per-product-shipping-for-woocommerce'
+										'Variable products',
+										'syzenlabs-per-product-shipping'
 									),
-									value: 'replace',
 								},
 							] }
-							onChange={ setMode }
 						/>
-						{ importResult && (
-							<Notice
-								status={
-									importResult.summary.errors
-										? 'warning'
-										: 'success'
-								}
-								isDismissible={ false }
-							>
-								{ `${ importResult.summary.families } ${ __(
-									'families ready',
-									'syzenlabs-per-product-shipping-for-woocommerce'
-								) }; ${ importResult.summary.errors } ${ __(
-									'row errors',
-									'syzenlabs-per-product-shipping-for-woocommerce'
-								) }` }
-								{ importResult.errors.map( ( item ) => (
-									<div
-										key={ `${ item.row }-${ item.message }` }
-									>{ `${ __(
-										'Row',
-										'syzenlabs-per-product-shipping-for-woocommerce'
-									) } ${ item.row }: ${
-										item.message
-									}` }</div>
-								) ) }
-							</Notice>
-						) }
-						<HStack>
-							{ importing && <Spinner /> }
-							<Button
-								variant="secondary"
-								disabled={ ! file || importing }
-								onClick={ dryRun }
-							>
-								{ __(
-									'Run dry run',
-									'syzenlabs-per-product-shipping-for-woocommerce'
-								) }
-							</Button>
-							<Button
-								variant="primary"
-								disabled={ ! importResult || importing }
-								onClick={ commitImport }
-							>
-								{ __(
-									'Commit import',
-									'syzenlabs-per-product-shipping-for-woocommerce'
-								) }
-							</Button>
-						</HStack>
-					</VStack>
-				</Modal>
-			) }
-		</Card>
+					</div>
+				</div>
+				{ selected.length > 0 && (
+					<div className="sp-selection-bar">
+						<span>
+							{ sprintf(
+								/* translators: %d: selected product count. */
+								__(
+									'%d selected',
+									'syzenlabs-per-product-shipping'
+								),
+								selected.length
+							) }
+						</span>
+						<Button
+							size="sm"
+							variant="ghost"
+							onClick={ () => setSelected( [] ) }
+						>
+							<X />
+							{ __(
+								'Clear',
+								'syzenlabs-per-product-shipping'
+							) }
+						</Button>
+						<Button
+							size="sm"
+							variant="ghost"
+							busy={ deleting }
+							onClick={ () => remove( selected ) }
+							className="sp-danger-text"
+						>
+							<Trash2 />
+							{ __(
+								'Delete selected',
+								'syzenlabs-per-product-shipping'
+							) }
+						</Button>
+					</div>
+				) }
+				<RulesContent
+					error={ error }
+					reload={ reload }
+					loading={ loading }
+					items={ items }
+					filtered={ filtered }
+					onClear={ () => setParams( {}, { replace: true } ) }
+					onCreate={ () => navigate( '/rule-add' ) }
+					selected={ selected }
+					setSelected={ setSelected }
+					deleting={ deleting }
+					remove={ remove }
+					page={ page }
+					perPage={ perPage }
+					total={ total }
+					totalPages={ totalPages }
+					updateParams={ updateParams }
+				/>
+			</section>
+			<ImportDialog
+				key={ importOpen ? 'open' : 'closed' }
+				open={ importOpen }
+				onOpenChange={ setImportOpen }
+				onImported={ reload }
+			/>
+		</div>
 	);
-};
+}

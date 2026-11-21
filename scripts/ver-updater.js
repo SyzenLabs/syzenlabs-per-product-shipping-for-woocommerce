@@ -11,7 +11,7 @@ const reg2 = /\*\sVersion:\s+(\d+\.\d+\.\d+(?:-[a-zA-Z]+)?)/;
 const reg3 = /Stable tag:\s+(\d+\.\d+\.\d+(?:-[a-zA-Z]+)?)/;
 
 let phpFile = fs.readFileSync(
-	'syzenlabs-per-product-shipping-for-woocommerce.php',
+	'syzenlabs-per-product-shipping.php',
 	'utf8'
 );
 let readmeFile = fs.readFileSync( 'readme.txt', 'utf8' );
@@ -69,7 +69,7 @@ if ( currVersion === 'error' ) {
 
 function updateVersion( version ) {
 	phpFile = phpFile.replace( reg1, () => {
-		return `define( 'SYZEQL_VER', '${ version }' );`;
+		return `define( 'SYZEPPS_VER', '${ version }' );`;
 	} );
 
 	phpFile = phpFile.replace( reg2, () => {
@@ -82,7 +82,7 @@ function updateVersion( version ) {
 
 	// Write the updated content back to the file
 	fs.writeFileSync(
-		'syzenlabs-per-product-shipping-for-woocommerce.php',
+		'syzenlabs-per-product-shipping.php',
 		phpFile,
 		'utf8'
 	);

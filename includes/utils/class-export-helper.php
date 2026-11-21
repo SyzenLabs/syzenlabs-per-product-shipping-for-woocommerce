@@ -2,7 +2,7 @@
 /**
  * Product-family CSV export.
  *
- * @package syzenlabs-per-product-shipping-for-woocommerce
+ * @package syzenlabs-per-product-shipping
  */
 
 namespace SYZEPPS\Includes\Utils;

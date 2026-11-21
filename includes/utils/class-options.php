@@ -2,7 +2,7 @@
 /**
  * WooCommerce submenu and React mount.
  *
- * @package syzenlabs-per-product-shipping-for-woocommerce
+ * @package syzenlabs-per-product-shipping
  */
 
 namespace SYZEPPS\Includes\Utils;
@@ -27,7 +27,7 @@ class Options {
 	 * @return void
 	 */
 	public function register_page() {
-		add_submenu_page( 'woocommerce', __( 'Per Product Shipping', 'syzenlabs-per-product-shipping-for-woocommerce' ), __( 'Per Product Shipping', 'syzenlabs-per-product-shipping-for-woocommerce' ), 'manage_woocommerce', 'syzepps-dashboard', array( $this, 'render_page' ) );
+		add_submenu_page( 'woocommerce', __( 'Per Product Shipping', 'syzenlabs-per-product-shipping' ), __( 'Per Product Shipping', 'syzenlabs-per-product-shipping' ), 'manage_woocommerce', 'syzepps-dashboard', array( $this, 'render_page' ) );
 	}
 
 	/**
@@ -37,7 +37,7 @@ class Options {
 	 */
 	public function render_page() {
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
-			wp_die( esc_html__( 'You are not allowed to manage shipping rules.', 'syzenlabs-per-product-shipping-for-woocommerce' ) );
+			wp_die( esc_html__( 'You are not allowed to manage shipping rules.', 'syzenlabs-per-product-shipping' ) );
 		}
 		echo '<div id="syzepps-dashboard-wrap" class="syzepps-admin"></div>';
 	}
@@ -49,7 +49,7 @@ class Options {
 	 * @return array
 	 */
 	public function plugin_actions( $links ) {
-		array_unshift( $links, '<a href="' . esc_url( admin_url( 'admin.php?page=syzepps-dashboard#settings' ) ) . '">' . esc_html__( 'Settings', 'syzenlabs-per-product-shipping-for-woocommerce' ) . '</a>' );
+		array_unshift( $links, '<a href="' . esc_url( admin_url( 'admin.php?page=syzepps-dashboard#settings' ) ) . '">' . esc_html__( 'Settings', 'syzenlabs-per-product-shipping' ) . '</a>' );
 		return $links;
 	}
 }

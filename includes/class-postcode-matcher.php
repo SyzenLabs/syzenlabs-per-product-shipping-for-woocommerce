@@ -2,7 +2,7 @@
 /**
  * Postcode pattern matching.
  *
- * @package syzenlabs-per-product-shipping-for-woocommerce
+ * @package syzenlabs-per-product-shipping
  */
 
 namespace SYZEPPS\Includes;

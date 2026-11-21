@@ -2,7 +2,7 @@
 /**
  * Hostile-input CSV parser for product-family rules.
  *
- * @package syzenlabs-per-product-shipping-for-woocommerce
+ * @package syzenlabs-per-product-shipping
  */
 
 namespace SYZEPPS\Includes\Utils;
@@ -27,18 +27,18 @@ class ImportHelper {
 	 */
 	public function prepare( $path, $mode = 'update' ) {
 		if ( ! is_readable( $path ) || filesize( $path ) > self::MAX_BYTES ) {
-			return new \WP_Error( 'syzepps_invalid_file', __( 'The CSV is missing or exceeds 2 MB.', 'syzenlabs-per-product-shipping-for-woocommerce' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'syzepps_invalid_file', __( 'The CSV is missing or exceeds 2 MB.', 'syzenlabs-per-product-shipping' ), array( 'status' => 400 ) );
 		}
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Streaming is required to parse valid multiline CSV fields without loading a hostile upload into memory.
 		$handle = fopen( $path, 'r' );
 		if ( false === $handle ) {
-			return new \WP_Error( 'syzepps_invalid_file', __( 'The CSV could not be read.', 'syzenlabs-per-product-shipping-for-woocommerce' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'syzepps_invalid_file', __( 'The CSV could not be read.', 'syzenlabs-per-product-shipping' ), array( 'status' => 400 ) );
 		}
 		$headers = fgetcsv( $handle );
 		if ( self::HEADERS !== $headers ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- This closes the validated upload stream opened above.
 			fclose( $handle );
-			return new \WP_Error( 'syzepps_invalid_headers', __( 'The CSV headers do not match the export format.', 'syzenlabs-per-product-shipping-for-woocommerce' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'syzepps_invalid_headers', __( 'The CSV headers do not match the export format.', 'syzenlabs-per-product-shipping' ), array( 'status' => 400 ) );
 		}
 
 		$db       = new DB();
@@ -52,7 +52,7 @@ class ImportHelper {
 			if ( count( $values ) !== count( self::HEADERS ) ) {
 				$errors[] = array(
 					'row'     => $row,
-					'message' => __( 'Column count does not match the header.', 'syzenlabs-per-product-shipping-for-woocommerce' ),
+					'message' => __( 'Column count does not match the header.', 'syzenlabs-per-product-shipping' ),
 				);
 				continue;
 			}
@@ -69,7 +69,7 @@ class ImportHelper {
 			if ( ! $product || ! ( $product->is_type( 'simple' ) || $product->is_type( 'variable' ) ) ) {
 				$errors[] = array(
 					'row'     => $row,
-					'message' => __( 'Product target is missing or ineligible.', 'syzenlabs-per-product-shipping-for-woocommerce' ),
+					'message' => __( 'Product target is missing or ineligible.', 'syzenlabs-per-product-shipping' ),
 				);
 				continue;
 			}
@@ -77,7 +77,7 @@ class ImportHelper {
 				if ( '' !== $item[ $cost_field ] && ( ! is_numeric( $item[ $cost_field ] ) || (float) $item[ $cost_field ] < 0 ) ) {
 					$errors[] = array(
 						'row'     => $row,
-						'message' => __( 'Line cost and item cost must be non-negative numbers or empty.', 'syzenlabs-per-product-shipping-for-woocommerce' ),
+						'message' => __( 'Line cost and item cost must be non-negative numbers or empty.', 'syzenlabs-per-product-shipping' ),
 					);
 					continue 2;
 				}
@@ -99,7 +99,7 @@ class ImportHelper {
 				if ( ! $variation || $variation->get_parent_id() !== $product_id ) {
 					$errors[] = array(
 						'row'     => $row,
-						'message' => __( 'Variation does not belong to the product.', 'syzenlabs-per-product-shipping-for-woocommerce' ),
+						'message' => __( 'Variation does not belong to the product.', 'syzenlabs-per-product-shipping' ),
 					);
 					continue;
 				}

@@ -2,7 +2,7 @@
 /**
  * Admin-only REST API.
  *
- * @package syzenlabs-per-product-shipping-for-woocommerce
+ * @package syzenlabs-per-product-shipping
  */
 
 namespace SYZEPPS\Includes\Rest;
@@ -355,7 +355,7 @@ class Rest {
 	public function create_rule( $request ) {
 		$id = absint( $request['product_id'] );
 		if ( $this->db->get_family( $id ) ) {
-			return new \WP_Error( 'syzepps_duplicate', __( 'This product family already has a rule.', 'syzenlabs-per-product-shipping-for-woocommerce' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'syzepps_duplicate', __( 'This product family already has a rule.', 'syzenlabs-per-product-shipping' ), array( 'status' => 409 ) );
 		}
 		return $this->save_request_family( $id, $request );
 	}
@@ -369,7 +369,7 @@ class Rest {
 	public function get_rule( $request ) {
 		$family = $this->db->get_family( $request['id'] );
 		if ( ! $family ) {
-			return new \WP_Error( 'syzepps_not_found', __( 'Rule not found.', 'syzenlabs-per-product-shipping-for-woocommerce' ), array( 'status' => 404 ) );
+			return new \WP_Error( 'syzepps_not_found', __( 'Rule not found.', 'syzenlabs-per-product-shipping' ), array( 'status' => 404 ) );
 		}
 		$metadata_request = new \WP_REST_Request( 'GET', '/' );
 		$metadata_request->set_param( 'id', $request['id'] );
@@ -385,7 +385,7 @@ class Rest {
 	 */
 	public function update_rule( $request ) {
 		if ( ! $this->db->get_family( $request['id'] ) ) {
-			return new \WP_Error( 'syzepps_not_found', __( 'Rule not found.', 'syzenlabs-per-product-shipping-for-woocommerce' ), array( 'status' => 404 ) );
+			return new \WP_Error( 'syzepps_not_found', __( 'Rule not found.', 'syzenlabs-per-product-shipping' ), array( 'status' => 404 ) );
 		}
 		return $this->save_request_family( absint( $request['id'] ), $request );
 	}
@@ -411,7 +411,7 @@ class Rest {
 		$files = $request->get_file_params();
 		$file  = isset( $files['file'] ) && is_array( $files['file'] ) ? $files['file'] : array();
 		if ( empty( $file['tmp_name'] ) || ! is_string( $file['tmp_name'] ) || empty( $file['name'] ) || ! is_string( $file['name'] ) || ! empty( $file['error'] ) || 'csv' !== wp_check_filetype( $file['name'], array( 'csv' => 'text/csv' ) )['ext'] ) {
-			return new \WP_Error( 'syzepps_upload_failed', __( 'Choose a valid CSV file.', 'syzenlabs-per-product-shipping-for-woocommerce' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'syzepps_upload_failed', __( 'Choose a valid CSV file.', 'syzenlabs-per-product-shipping' ), array( 'status' => 400 ) );
 		}
 		$mode   = $request->get_param( 'mode' );
 		$mode   = is_string( $mode ) ? sanitize_key( $mode ) : 'update';
@@ -437,7 +437,7 @@ class Rest {
 		$key    = 'syzepps_import_' . get_current_user_id() . '_' . sanitize_key( $request['token'] );
 		$result = get_transient( $key );
 		if ( ! is_array( $result ) || empty( $result['data'] ) ) {
-			return new \WP_Error( 'syzepps_import_expired', __( 'The validated import expired. Run the dry run again.', 'syzenlabs-per-product-shipping-for-woocommerce' ), array( 'status' => 410 ) );
+			return new \WP_Error( 'syzepps_import_expired', __( 'The validated import expired. Run the dry run again.', 'syzenlabs-per-product-shipping' ), array( 'status' => 410 ) );
 		}
 		$this->db->replace_data( $result['data'] );
 		delete_transient( $key );
@@ -516,7 +516,7 @@ class Rest {
 	 */
 	private function eligible_product( $id ) {
 		$product = wc_get_product( absint( $id ) );
-		return $product && ( $product->is_type( 'simple' ) || $product->is_type( 'variable' ) ) ? $product : new \WP_Error( 'syzepps_invalid_product', __( 'Select a simple product or variable-product parent.', 'syzenlabs-per-product-shipping-for-woocommerce' ), array( 'status' => 400 ) );
+		return $product && ( $product->is_type( 'simple' ) || $product->is_type( 'variable' ) ) ? $product : new \WP_Error( 'syzepps_invalid_product', __( 'Select a simple product or variable-product parent.', 'syzenlabs-per-product-shipping' ), array( 'status' => 400 ) );
 	}
 
 	/**

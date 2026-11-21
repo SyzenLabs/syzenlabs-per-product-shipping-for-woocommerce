@@ -2,7 +2,7 @@
 /**
  * Pure package rule resolution and arithmetic.
  *
- * @package syzenlabs-per-product-shipping-for-woocommerce
+ * @package syzenlabs-per-product-shipping
  */
 
 namespace SYZEPPS\Includes;

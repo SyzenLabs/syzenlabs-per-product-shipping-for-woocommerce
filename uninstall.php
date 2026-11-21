@@ -2,7 +2,7 @@
 /**
  * Syzenlabs Per Product Shipping uninstall.
  *
- * @package syzenlabs-per-product-shipping-for-woocommerce
+ * @package syzenlabs-per-product-shipping
  */
 
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;

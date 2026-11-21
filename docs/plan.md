@@ -1,8 +1,8 @@
 # Syzenlabs Per Product Shipping for WooCommerce — Clone-First Implementation Plan
 
 **Project:** Syzenlabs Per Product Shipping for WooCommerce
-**Plugin slug:** `syzenlabs-per-product-shipping-for-woocommerce`
-**Text domain:** `syzenlabs-per-product-shipping-for-woocommerce`
+**Plugin slug:** `syzenlabs-per-product-shipping`
+**Text domain:** `syzenlabs-per-product-shipping`
 **PHP namespace:** `SYZEPPS`
 **Code prefix:** `syzepps`
 **Initial version:** `1.0.0`
@@ -135,14 +135,14 @@ At the initial clone-first planning baseline, excluding hidden agent state, work
 
 The copied tree differs from the source mainly by:
 
-- renamed root plugin file: `syzenlabs-per-product-shipping-for-woocommerce.php`
+- renamed root plugin file: `syzenlabs-per-product-shipping.php`
 - added `docs/plan.md`
 - omitted original project docs
 - omitted `composer.json`, `composer.lock`, `vendor/`, and `vendor_prefixed/`
 
 ### 2.2 Current bootstrap is not a valid new-plugin bootstrap
 
-`syzenlabs-per-product-shipping-for-woocommerce.php` currently:
+`syzenlabs-per-product-shipping.php` currently:
 
 - still uses namespace `WTRS`
 - still defines `WTRS_*` constants
@@ -300,7 +300,7 @@ Every active runtime identity must use the new plugin namespace/prefix. WowShipp
 | CSS scope | `.syzepps-admin` |
 | Product-rate option | `syzepps-product-rates` |
 | Settings option | `syzepps-settings` |
-| Text domain | `syzenlabs-per-product-shipping-for-woocommerce` |
+| Text domain | `syzenlabs-per-product-shipping` |
 
 Coexistence requirements:
 
@@ -317,7 +317,7 @@ Coexistence requirements:
 
 Modify existing files:
 
-- `syzenlabs-per-product-shipping-for-woocommerce.php`
+- `syzenlabs-per-product-shipping.php`
 - `package.json`
 - `package-lock.json`
 - `webpack.config.js`
@@ -1035,7 +1035,7 @@ No phase is complete because a file compiles; its user-visible path must work.
 
 Files:
 
-- `syzenlabs-per-product-shipping-for-woocommerce.php`
+- `syzenlabs-per-product-shipping.php`
 - `includes/class-init.php`
 - `traits/trait-singleton.php` only if namespace change requires it
 
